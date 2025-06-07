@@ -3,7 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCalendarAlt, faClock, faCheckCircle, faExclamationTriangle,
-  faArrowRight, faAdjust, faChartLine, faLightbulb, faSync
+  faArrowRight, faAdjust, faChartLine, faLightbulb, faSync,
+  faYoutube, faFileAlt, faBell, faGraduationCap, faBook
 } from '@fortawesome/free-solid-svg-icons';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -12,6 +13,44 @@ function Schedule() {
   const [viewMode, setViewMode] = useState('daily'); // 'daily' or 'weekly'
   const [currentDate, setCurrentDate] = useState(new Date());
   
+  // Student's interests and strengths/weaknesses (for personalized scheduling)
+  const studentProfile = {
+    name: "John Doe",
+    interests: ["Machine Learning", "Data Science", "Web Development"],
+    strengths: ["Programming", "Mathematics"],
+    weaknesses: ["Statistics", "Theoretical Concepts"],
+    availableHours: 5, // hours available per day
+    preferredLearningStyle: "visual" // visual, auditory, reading/writing, kinesthetic
+  };
+
+  // Content recommendations based on subject and learning style
+  const contentRecommendations = {
+    "Machine Learning Fundamentals": [
+      { type: "document", title: "Google Doc: Introduction to ML Algorithms", url: "https://docs.google.com/document/d/example1" },
+      { type: "video", title: "YouTube: Understanding Supervised Learning", url: "https://youtube.com/watch?v=example1" }
+    ],
+    "Data Structures": [
+      { type: "document", title: "Google Doc: Binary Trees and Graph Traversal", url: "https://docs.google.com/document/d/example2" },
+      { type: "video", title: "YouTube: Visualizing Data Structures", url: "https://youtube.com/watch?v=example2" }
+    ],
+    "Web Development": [
+      { type: "document", title: "Google Doc: React Components and State", url: "https://docs.google.com/document/d/example3" },
+      { type: "video", title: "YouTube: Building Responsive Dashboards", url: "https://youtube.com/watch?v=example3" }
+    ],
+    "Statistics for Data Science": [
+      { type: "document", title: "Google Doc: Probability Distributions Explained", url: "https://docs.google.com/document/d/example4" },
+      { type: "video", title: "YouTube: Hypothesis Testing Made Simple", url: "https://youtube.com/watch?v=example4" }
+    ]
+  };
+
+  // Study reminders based on schedule and performance
+  const studyReminders = [
+    { subject: "Machine Learning Fundamentals", message: "Focus on supervised vs. unsupervised learning concepts today", priority: "high" },
+    { subject: "Data Structures", message: "Practice implementing binary trees for tomorrow's quiz", priority: "medium" },
+    { subject: "Web Development", message: "Complete the React dashboard component by end of day", priority: "medium" },
+    { subject: "Statistics for Data Science", message: "Review hypothesis testing concepts before Friday's test", priority: "low" }
+  ];
+
   // Mock data for schedule
   const mockSchedule = {
     daily: [
@@ -213,7 +252,10 @@ function Schedule() {
               
               <p className="card-text">{session.description}</p>
               
-              <div className="d-flex justify-content-between align-items-center">
+              {/* Content recommendations */}
+              {renderContentRecommendations(session.subject)}
+              
+              <div className="d-flex justify-content-between align-items-center mt-3">
                 <div className="badge bg-secondary">{session.type}</div>
                 {session.completed ? (
                   <span className="text-success">
@@ -284,6 +326,57 @@ function Schedule() {
             ))}
           </tbody>
         </table>
+      </div>
+    );
+  };
+
+  // Render content recommendations for a subject
+  const renderContentRecommendations = (subject) => {
+    const recommendations = contentRecommendations[subject] || [];
+    if (recommendations.length === 0) return null;
+    
+    return (
+      <div className="mt-3">
+        <h6 className="text-primary mb-2">Recommended Resources:</h6>
+        <ul className="list-group list-group-flush">
+          {recommendations.map((item, index) => (
+            <li key={index} className="list-group-item px-0 py-2 border-0">
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-decoration-none">
+                <FontAwesomeIcon 
+                  icon={item.type === "video" ? faYoutube : faFileAlt} 
+                  className={`me-2 ${item.type === "video" ? "text-danger" : "text-primary"}`} 
+                />
+                {item.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
+  // Render study reminders
+  const renderStudyReminders = () => {
+    return (
+      <div className="card border-warning mb-4">
+        <div className="card-header bg-warning bg-opacity-10 d-flex align-items-center">
+          <FontAwesomeIcon icon={faBell} className="me-2 text-warning" />
+          <h5 className="mb-0">Today's Study Reminders</h5>
+        </div>
+        <div className="card-body">
+          <ul className="list-group list-group-flush">
+            {studyReminders.map((reminder, index) => (
+              <li key={index} className="list-group-item d-flex align-items-start px-0">
+                <div className={`badge bg-${getPriorityColor(reminder.priority)} me-3 mt-1`}>
+                  {reminder.priority.charAt(0).toUpperCase() + reminder.priority.slice(1)}
+                </div>
+                <div>
+                  <strong>{reminder.subject}:</strong> {reminder.message}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     );
   };
@@ -385,6 +478,9 @@ function Schedule() {
         </div>
 
         <div className="col-lg-4">
+          {/* Study Reminders */}
+          {renderStudyReminders()}
+          
           {/* Progress Tracker */}
           <div className="card shadow-sm mb-4">
             <div className="card-header bg-white">

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faInfoCircle, faUser, faSignInAlt, faSignOutAlt, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faInfoCircle, faUser, faSignInAlt, faSignOutAlt, faCalendarAlt, faTachometerAlt } from '@fortawesome/free-solid-svg-icons';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function Navbar() {
@@ -42,6 +42,12 @@ function Navbar() {
             
             {isAuthenticated ? (
               <>
+                <li className="nav-item">
+                  <Link to="/dashboard" className="nav-link d-flex align-items-center">
+                    <FontAwesomeIcon icon={faTachometerAlt} className="me-2" />
+                    Dashboard
+                  </Link>
+                </li>
                 <li className="nav-item">
                   <Link to="/profile" className="nav-link d-flex align-items-center">
                     <FontAwesomeIcon icon={faUser} className="me-2" />

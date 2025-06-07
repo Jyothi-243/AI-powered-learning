@@ -5,6 +5,7 @@ import Home from './Home';
 import About from './About';
 import Profile from './Profile';
 import Schedule from './Schedule';
+import Dashboard from './Dashboard';
 import Auth from './Auth';
 
 // Protected route component
@@ -38,6 +39,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Schedule />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <Dashboard />
           </ProtectedRoute>
         } 
       />
