@@ -5,8 +5,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faUser, faGraduationCap, faMedal, faCog, 
   faEdit, faChartLine, faCheckCircle, faRocket,
-  faCalendarCheck, faCompass
+  faCalendarCheck, faCompass, faBell, faCalendarAlt,
+  faFileAlt, faBook, faLightbulb, faClock
 } from '@fortawesome/free-solid-svg-icons';
+import { faYoutube } from '@fortawesome/free-brands-svg-icons';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function Profile() {

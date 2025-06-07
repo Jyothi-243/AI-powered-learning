@@ -4,8 +4,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCalendarAlt, faClock, faCheckCircle, faExclamationTriangle,
   faArrowRight, faAdjust, faChartLine, faLightbulb, faSync,
-  faYoutube, faFileAlt, faBell, faGraduationCap, faBook
+  faFileAlt, faBell, faGraduationCap, faBook
 } from '@fortawesome/free-solid-svg-icons';
+import { faYoutube } from '@fortawesome/free-brands-svg-icons';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function Schedule() {
