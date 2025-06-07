@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -7,6 +7,7 @@ import {
   faFileAlt, faBell, faGraduationCap, faBook
 } from '@fortawesome/free-solid-svg-icons';
 import { faYoutube } from '@fortawesome/free-brands-svg-icons';
+import { generatePersonalizedSchedule, generateStudyReminders, getContentRecommendations, completeStudySession, getStudentData } from '../utils/aiService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function Schedule() {
@@ -14,46 +15,26 @@ function Schedule() {
   const [viewMode, setViewMode] = useState('daily'); // 'daily' or 'weekly'
   const [currentDate, setCurrentDate] = useState(new Date());
   
-  // Student's interests and strengths/weaknesses (for personalized scheduling)
-  const studentProfile = {
-    name: "John Doe",
-    interests: ["Machine Learning", "Data Science", "Web Development"],
-    strengths: ["Programming", "Mathematics"],
-    weaknesses: ["Statistics", "Theoretical Concepts"],
-    availableHours: 5, // hours available per day
-    preferredLearningStyle: "visual" // visual, auditory, reading/writing, kinesthetic
-  };
+  // Get student profile data from AI service
+  const studentProfile = getStudentData();
+  
+  // State for dynamic schedule and reminders
+  const [aiSchedule, setAiSchedule] = useState(null);
+  const [aiReminders, setAiReminders] = useState([]);
 
-  // Content recommendations based on subject and learning style
-  const contentRecommendations = {
-    "Machine Learning Fundamentals": [
-      { type: "document", title: "Google Doc: Introduction to ML Algorithms", url: "https://docs.google.com/document/d/example1" },
-      { type: "video", title: "YouTube: Understanding Supervised Learning", url: "https://youtube.com/watch?v=example1" }
-    ],
-    "Data Structures": [
-      { type: "document", title: "Google Doc: Binary Trees and Graph Traversal", url: "https://docs.google.com/document/d/example2" },
-      { type: "video", title: "YouTube: Visualizing Data Structures", url: "https://youtube.com/watch?v=example2" }
-    ],
-    "Web Development": [
-      { type: "document", title: "Google Doc: React Components and State", url: "https://docs.google.com/document/d/example3" },
-      { type: "video", title: "YouTube: Building Responsive Dashboards", url: "https://youtube.com/watch?v=example3" }
-    ],
-    "Statistics for Data Science": [
-      { type: "document", title: "Google Doc: Probability Distributions Explained", url: "https://docs.google.com/document/d/example4" },
-      { type: "video", title: "YouTube: Hypothesis Testing Made Simple", url: "https://youtube.com/watch?v=example4" }
-    ]
-  };
+  // Load AI-generated schedule and reminders on component mount
+  useEffect(() => {
+    // Generate personalized schedule based on student performance
+    const generatedSchedule = generatePersonalizedSchedule();
+    setAiSchedule(generatedSchedule);
+    
+    // Generate study reminders based on performance and schedule
+    const generatedReminders = generateStudyReminders();
+    setAiReminders(generatedReminders);
+  }, []);
 
-  // Study reminders based on schedule and performance
-  const studyReminders = [
-    { subject: "Machine Learning Fundamentals", message: "Focus on supervised vs. unsupervised learning concepts today", priority: "high" },
-    { subject: "Data Structures", message: "Practice implementing binary trees for tomorrow's quiz", priority: "medium" },
-    { subject: "Web Development", message: "Complete the React dashboard component by end of day", priority: "medium" },
-    { subject: "Statistics for Data Science", message: "Review hypothesis testing concepts before Friday's test", priority: "low" }
-  ];
-
-  // Mock data for schedule
-  const mockSchedule = {
+  // Mock data for schedule - will be replaced by AI-generated schedule
+  const mockSchedule = aiSchedule || {
     daily: [
       {
         id: 1,
@@ -218,9 +199,26 @@ function Schedule() {
 
   // Mark session as complete
   const markAsComplete = (id) => {
-    // In a real app, this would update the backend
-    console.log(`Marking session ${id} as complete`);
-    // For demo, we'd update state here
+    // Find the session in the schedule
+    const session = aiSchedule?.daily.find(s => s.id === id);
+    if (session) {
+      // Update the session status and progress in the AI service
+      completeStudySession(id, session.subject);
+      
+      // Update the local state to reflect the change
+      const updatedSchedule = {
+        ...aiSchedule,
+        daily: aiSchedule.daily.map(s => {
+          if (s.id === id) {
+            return { ...s, completed: true, progress: 100 };
+          }
+          return s;
+        })
+      };
+      
+      setAiSchedule(updatedSchedule);
+      console.log(`Marked session ${id} (${session.subject}) as complete`);
+    }
   };
 
   // Generate time slots for daily view
@@ -333,7 +331,8 @@ function Schedule() {
 
   // Render content recommendations for a subject
   const renderContentRecommendations = (subject) => {
-    const recommendations = contentRecommendations[subject] || [];
+    // Get AI-powered recommendations based on student performance
+    const recommendations = getContentRecommendations(subject);
     if (recommendations.length === 0) return null;
     
     return (
@@ -366,7 +365,7 @@ function Schedule() {
         </div>
         <div className="card-body">
           <ul className="list-group list-group-flush">
-            {studyReminders.map((reminder, index) => (
+            {aiReminders.map((reminder, index) => (
               <li key={index} className="list-group-item d-flex align-items-start px-0">
                 <div className={`badge bg-${getPriorityColor(reminder.priority)} me-3 mt-1`}>
                   {reminder.priority.charAt(0).toUpperCase() + reminder.priority.slice(1)}

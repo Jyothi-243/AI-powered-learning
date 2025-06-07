@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -9,22 +9,68 @@ import {
   faFileAlt, faBook, faLightbulb, faClock
 } from '@fortawesome/free-solid-svg-icons';
 import { faYoutube } from '@fortawesome/free-brands-svg-icons';
+import { getStudentData, getSubjectProgress, getContentRecommendations, updateSubjectProgress } from '../utils/aiService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function Profile() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
 
-  // Mock data for user profile
+  // Get real-time student data from AI service
+  const studentInfo = getStudentData();
+
+  // State for dynamic study sessions, recommendations, and reminders
+  const [studySessions, setStudySessions] = useState([]);
+  const [studyReminders, setStudyReminders] = useState([]);
+
+  // Load AI-generated data on component mount
+  useEffect(() => {
+    // Get subject progress data
+    const progressData = getSubjectProgress();
+    setStudySessions(progressData);
+
+    // Generate study reminders based on student performance
+    // Using the same reminders from the Schedule page for consistency
+    const { subjects } = studentInfo;
+    const reminders = Object.keys(subjects).map(subject => {
+      const subjectData = subjects[subject];
+      const priority = getPriorityFromScore(subjectData.averageScore);
+
+      // Create reminder based on subject performance
+      let message = '';
+      if (subjectData.averageScore < 70) {
+        message = `Focus on ${subjectData.weaknesses[0]} concepts to improve your score`;
+      } else if (subjectData.averageScore < 85) {
+        message = `Continue practicing ${subjectData.weaknesses[0]} to master the concepts`;
+      } else {
+        message = `Review ${subjectData.strengths[0]} to maintain your excellent progress`;
+      }
+
+      return {
+        subject,
+        message,
+        priority,
+        hours: subjectData.recommendedHours
+      };
+    });
+
+    setStudyReminders(reminders);
+  }, []);
+
+  // Helper function to determine priority based on score
+  const getPriorityFromScore = (score) => {
+    if (score < 70) return 'high';
+    if (score < 85) return 'medium';
+    return 'low';
+  };
+
+  // Mock data for user profile - enhanced with real-time AI data
   const mockUserData = {
-    name: currentUser?.name || 'John Doe',
+    name: currentUser?.name || studentInfo.name,
     email: currentUser?.email || 'john.doe@example.com',
     profilePicture: 'https://randomuser.me/api/portraits/men/32.jpg',
-    learningPath: [
-      { id: 1, title: 'Introduction to Machine Learning', progress: 75 },
-      { id: 2, title: 'Data Visualization Techniques', progress: 40 },
-      { id: 3, title: 'Advanced Neural Networks', progress: 10 }
-    ],
+    overallProgress: studentInfo.overallProgress,
+    learningPath: studySessions,
     achievements: [
       { id: 1, title: 'Fast Learner', description: 'Completed 5 courses in one month', icon: faRocket },
       { id: 2, title: 'Perfect Score', description: 'Achieved 100% on a quiz', icon: faCheckCircle },
@@ -50,8 +96,8 @@ function Profile() {
                 <img 
                   src={mockUserData.profilePicture} 
                   alt="Profile" 
-                  className="rounded-circle img-thumbnail" 
-                  style={{ width: '150px', height: '150px', objectFit: 'cover' }}
+                  className="rounded-circle img-fluid" 
+                  style={{ width: '120px', height: '120px', objectFit: 'cover' }} 
                 />
                 <h3 className="mt-3">{mockUserData.name}</h3>
                 <p className="text-muted">{mockUserData.email}</p>
@@ -85,15 +131,38 @@ function Profile() {
                 <h4 className="mb-3">AI-Powered Insights</h4>
                 <div className="card bg-light border-0">
                   <div className="card-body">
-                    <p className="mb-1">
-                      <strong>Strengths:</strong> Python Programming, Data Analysis
-                    </p>
-                    <p className="mb-1">
-                      <strong>Areas for Improvement:</strong> Neural Networks, Deep Learning
-                    </p>
-                    <p className="mb-0">
-                      <strong>Recommendation:</strong> Focus on completing the "Advanced Neural Networks" course to improve your skills in this area.
-                    </p>
+                    {Object.keys(studentInfo.subjects).map((subject, idx) => (
+                      <div key={idx} className="mb-2">
+                        <p className="mb-1">
+                          <strong>{subject} Analysis:</strong>
+                        </p>
+                        <p className="mb-1 ms-3">
+                          <strong>Strengths:</strong> {studentInfo.subjects[subject].strengths.join(', ')}
+                        </p>
+                        <p className="mb-1 ms-3">
+                          <strong>Areas for Improvement:</strong> {studentInfo.subjects[subject].weaknesses.join(', ')}
+                        </p>
+                        <p className="mb-1 ms-3">
+                          <strong>Average Score:</strong> {studentInfo.subjects[subject].averageScore}%
+                        </p>
+                      </div>
+                    ))}
+                    <div className="mt-3">
+                      <h6 className="mb-2">Study Reminders:</h6>
+                      <ul className="list-group list-group-flush">
+                        {studyReminders.map((reminder, index) => (
+                          <li key={index} className="list-group-item d-flex align-items-start px-0 py-2 border-0">
+                            <div className={`badge bg-${getPriorityColor(reminder.priority)} me-3 mt-1`}>
+                              {reminder.priority.charAt(0).toUpperCase() + reminder.priority.slice(1)}
+                            </div>
+                            <div>
+                              <strong>{reminder.subject}:</strong> {reminder.message}
+                              <div><small className="text-muted">Recommended: {reminder.hours} hours</small></div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -105,34 +174,71 @@ function Profile() {
         return (
           <div className="card border-0 shadow-sm">
             <div className="card-body p-4">
-              <h4 className="mb-4">Your Learning Path</h4>
+              <h4 className="mb-4">Learning Path</h4>
               
+              {/* AI-Powered Study Progress Section */}
               <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="mb-0">Current Progress</h5>
-                  <span className="badge bg-primary">42% Complete</span>
-                </div>
-                <div className="progress mb-3" style={{ height: '10px' }}>
-                  <div 
-                    className="progress-bar" 
-                    role="progressbar" 
-                    style={{ width: '42%', backgroundColor: '#5e72e4' }} 
-                    aria-valuenow="42" 
-                    aria-valuemin="0" 
-                    aria-valuemax="100">
+                <h5 className="mb-3">Study Progress</h5>
+                {studySessions.map((session, index) => (
+                  <div key={index} className="card mb-3 border-left-accent" style={{ borderLeft: `4px solid ${getSkillColor(session.progress)}` }}>
+                    <div className="card-body">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <h6 className="mb-0">{session.subject}</h6>
+                        <span className="badge bg-info">{session.progress}% Complete</span>
+                      </div>
+                      <div className="progress" style={{ height: '8px' }}>
+                        <div 
+                          className="progress-bar" 
+                          role="progressbar" 
+                          style={{ width: `${session.progress}%`, backgroundColor: getSkillColor(session.progress) }} 
+                          aria-valuenow={session.progress} 
+                          aria-valuemin="0" 
+                          aria-valuemax="100">
+                        </div>
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center mt-2">
+                        <small className="text-muted">
+                          <FontAwesomeIcon icon={faClock} className="me-1" /> 
+                          {session.completedMinutes} of {session.totalMinutes} minutes
+                        </small>
+                        <small className="text-muted">
+                          <FontAwesomeIcon icon={faCalendarAlt} className="me-1" /> 
+                          Last studied: {session.lastStudied}
+                        </small>
+                      </div>
+                      
+                      {/* AI-Powered Content Recommendations */}
+                      <div className="mt-3">
+                        <h6 className="text-primary">
+                          <FontAwesomeIcon icon={faLightbulb} className="me-2" />
+                          Recommended Resources:
+                        </h6>
+                        <ul className="list-group list-group-flush">
+                          {getContentRecommendations(session.subject).slice(0, 2).map((item, idx) => (
+                            <li key={idx} className="list-group-item px-0 py-2 border-0">
+                              <FontAwesomeIcon 
+                                icon={item.type === 'document' ? faFileAlt : faYoutube} 
+                                className={`me-2 ${item.type === 'document' ? 'text-primary' : 'text-danger'}`} 
+                              />
+                              <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-decoration-none">
+                                {item.title}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <p className="text-muted small">
-                  You're making good progress! Keep going to unlock new achievements.
-                </p>
+                ))}
               </div>
               
-              <h5 className="mb-3">Courses in Your Path</h5>
+              {/* Original Learning Path Courses */}
+              <h5 className="mb-3">Available Courses</h5>
               {mockUserData.learningPath.map((course, index) => (
-                <div key={index} className="card mb-3 border-0 shadow-sm">
+                <div key={index} className="card mb-3">
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                      <h6 className="mb-0">{course.title}</h6>
+                      <h6 className="mb-0">{course.subject}</h6>
                       <span className="badge bg-info">{course.progress}% Complete</span>
                     </div>
                     <div className="progress" style={{ height: '8px' }}>
@@ -146,7 +252,7 @@ function Profile() {
                       </div>
                     </div>
                     <div className="mt-3">
-                      <Link to={`/course/${course.id}`} className="btn btn-sm btn-primary">
+                      <Link to={`/course/${index+1}`} className="btn btn-sm btn-primary">
                         {course.progress > 0 ? 'Continue' : 'Start'}
                       </Link>
                     </div>
@@ -159,12 +265,23 @@ function Profile() {
                 <div className="card bg-light border-0">
                   <div className="card-body">
                     <p className="mb-2">
-                      <strong>Based on your progress, we recommend:</strong>
+                      <strong>Based on your performance, we recommend:</strong>
                     </p>
                     <ul className="mb-0">
-                      <li>Focus on completing "Introduction to Machine Learning" first</li>
-                      <li>Schedule at least 3 hours per week for "Data Visualization Techniques"</li>
-                      <li>Consider taking the "Python for Data Science" supplementary course</li>
+                      {Object.keys(studentInfo.subjects).map((subject, idx) => {
+                        const subjectData = studentInfo.subjects[subject];
+                        let recommendation = '';
+                        
+                        if (subjectData.averageScore < 70) {
+                          recommendation = `Focus on ${subject} (${subjectData.recommendedHours} hours/day) to improve your ${subjectData.weaknesses[0]} skills`;
+                        } else if (subjectData.averageScore < 85) {
+                          recommendation = `Continue with ${subject} (${subjectData.recommendedHours} hours/week) to master ${subjectData.weaknesses[0]}`;
+                        } else {
+                          recommendation = `Maintain your excellent progress in ${subject} with advanced exercises`;
+                        }
+                        
+                        return <li key={idx}>{recommendation}</li>;
+                      })}
                     </ul>
                   </div>
                 </div>
@@ -303,6 +420,20 @@ function Profile() {
     if (level < 60) return '#fb6340'; // orange
     if (level < 80) return '#ffd600'; // yellow
     return '#2dce89'; // green
+  };
+  
+  // Helper function to determine priority color
+  const getPriorityColor = (priority) => {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return 'danger';
+      case 'medium':
+        return 'warning';
+      case 'low':
+        return 'success';
+      default:
+        return 'info';
+    }
   };
 
   // Icons are now properly imported at the top of the file
